@@ -8,6 +8,11 @@ ADD docker/scripts/build_hugo.sh  .
 
 RUN sh build_hugo.sh $HUGO_VERSION
 
+FROM node:alpine3.14 as node_builder
+
+ADD docker/node/package.json .
+RUN npm i 
+
 FROM plugins/base:linux-arm
 
 LABEL maintainer="Drone.IO Community <drone-dev@googlegroups.com>" \
@@ -22,6 +27,10 @@ ENV PLUGIN_HUGO_SHIPPED_VERSION=$HUGO_VERSION
 
 COPY --from=hugo_builder /tmp/hugo /bin/hugo
 COPY --from=hugo_builder /tmp/hugo-extended /bin/hugo-extended
+COPY --from=node_builder node_modules/ /node-modules
+COPY --from=node_builder /usr/local/bin/node /bin
+
+ENV PATH=$PATH:/bin:/node_modules/.bin
 
 ADD release/linux/arm/drone-hugo /bin/
 ENTRYPOINT ["/bin/drone-hugo"]
